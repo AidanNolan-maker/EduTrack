@@ -1,3 +1,7 @@
+backend/src/main/resources/application.properties
+
+application-example.properties
+
 # Java / Maven
 backend/target/
 backend/.idea/
