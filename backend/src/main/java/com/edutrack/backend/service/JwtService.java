@@ -2,6 +2,8 @@ package com.edutrack.backend.service;
 
 import com.edutrack.backend.entity.User;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -37,5 +39,14 @@ public class JwtService {
                 .expiration(expirationDate)
                 .signWith(signingKey)
                 .compact();
+    }
+
+    public String extractUserId(String token) {
+        Jws<Claims> parsedToken = Jwts.parser()
+                .verifyWith(signingKey)
+                .build()
+                .parseSignedClaims(token);
+
+        return parsedToken.getPayload().getSubject();
     }
 }
