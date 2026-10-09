@@ -2,6 +2,8 @@ package com.edutrack.backend.controller;
 
 import com.edutrack.backend.dto.RegisterRequest;
 import com.edutrack.backend.dto.UserResponse;
+import com.edutrack.backend.dto.LoginResponse;
+import com.edutrack.backend.dto.LoginRequest;
 import com.edutrack.backend.entity.User;
 import com.edutrack.backend.mapper.UserMapper;
 import com.edutrack.backend.service.AuthService;
@@ -27,5 +29,14 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(userMapper.toResponse(user));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest request
+    ) {
+        LoginResponse response = authService.login(request);
+
+        return ResponseEntity.ok(response);
     }
 }

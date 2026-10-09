@@ -11,6 +11,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.edutrack.backend.entity.Role;
+import com.edutrack.backend.entity.User;
+
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -97,5 +100,94 @@ public class AuthControllerIntegrationTest {
                     .content(request)
         )
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void loginReturnsJwtForValidCredentials() throws Exception {
+        User user = new User();
+        user.setFirstName("Login");
+        user.setLastName("Test");
+        user.setEmail("http.login@example.com");
+        user.setPassword(passwordEncoder.encode("password123"));
+        user.setRole(Role.STUDENT);
+        user.setEnabled(true);
+
+        userRepository.save(user);
+
+        String request = """
+                {
+                    "email": "http.login@example.com",
+                    "password": "password123"
+                }
+                """;
+
+        mockMvc.perform(
+                post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request)
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isString())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.userId").value(user.getId().toString()))
+                .andExpect(jsonPath("$.firstName").value("Login"))
+                .andExpect(jsonPath("$.lastName").value("Test"))
+                .andExpect(jsonPath("$.email").value("http.login@example.com"))
+                .andExpect(jsonPath("$.role").value("STUDENT"));
+    }
+
+    @Test
+    void loginRejectsIncorrectPassword() throws Exception {
+        User user = new User();
+        user.setFirstName("Wrong");
+        user.setLastName("Password");
+        user.setEmail("http.wrong@example.com");
+        user.setPassword(passwordEncoder.encode("correct-password"));
+        user.setRole(Role.STUDENT);
+        user.setEnabled(true);
+
+        userRepository.save(user);
+
+        String request = """
+            {
+                "email": "http.wrong@example.com",
+                "password": "wrong-password"
+            }
+            """;
+
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(request)
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loginRejectsDisabledAccount() throws Exception {
+        User user = new User();
+        user.setFirstName("Disabled");
+        user.setLastName("HTTP");
+        user.setEmail("http.disabled@example.com");
+        user.setPassword(passwordEncoder.encode("password123"));
+        user.setRole(Role.STUDENT);
+        user.setEnabled(false);
+
+        userRepository.save(user);
+
+        String request = """
+            {
+                "email": "http.disabled@example.com",
+                "password": "password123"
+            }
+            """;
+
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(request)
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Account is disabled"));
     }
 }
