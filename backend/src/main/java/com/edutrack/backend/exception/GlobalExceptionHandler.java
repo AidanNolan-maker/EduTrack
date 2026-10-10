@@ -17,4 +17,22 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("error", exception.getMessage()));
     }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleAccessDeniedException(
+            AccessDeniedException exception
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", exception.getMessage()));
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<Map<String, String>> handleBadRequestException(
+            BadRequestException exception
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", exception.getMessage()));
+    }
 }

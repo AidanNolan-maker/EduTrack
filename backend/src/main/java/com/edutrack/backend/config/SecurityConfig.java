@@ -10,11 +10,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import lombok.RequiredArgsConstructor;
 
 import com.edutrack.backend.security.JwtAuthenticationFilter;
 
 @Configuration
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -39,12 +42,14 @@ public class SecurityConfig {
                                                 "Unauthorized"
                                         )
                         )
+                        .accessDeniedHandler(accessDeniedHandler())
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/login",
-                                "/api/health"
+                                "/api/health",
+                                "/api/courses/published"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -54,5 +59,16 @@ public class SecurityConfig {
                 );
 
         return http.build();
+    }
+
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json");
+            response.getWriter().write(
+                    "{\"error\":\"You do not have permission to perform this action\"}"
+            );
+        };
     }
 }
