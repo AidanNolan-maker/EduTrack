@@ -480,4 +480,119 @@ class EnrollmentControllerIntegrationTest {
         mockMvc.perform(patch("/api/enrollments/" + enrollment.getId() + "/drop"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void adminCanCompleteActiveEnrollment() throws Exception {
+        Course course = createPublishedCourse();
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setStudent(student);
+        enrollment.setCourse(course);
+        enrollmentRepository.save(enrollment);
+
+        String token = tokenFor(admin);
+
+        mockMvc.perform(patch(
+                        "/api/enrollments/" + enrollment.getId() + "/complete"
+                )
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id")
+                        .value(enrollment.getId().toString()))
+                .andExpect(jsonPath("$.status")
+                        .value("COMPLETED"));
+    }
+
+    @Test
+    void adminCannotCompleteDroppedEnrollment() throws Exception {
+        Course course = createPublishedCourse();
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setStudent(student);
+        enrollment.setCourse(course);
+        enrollment.setStatus(EnrollmentStatus.DROPPED);
+        enrollmentRepository.save(enrollment);
+
+        String token = tokenFor(admin);
+
+        mockMvc.perform(patch(
+                        "/api/enrollments/" + enrollment.getId() + "/complete"
+                )
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error")
+                        .value("Only active enrollments can be completed"));
+    }
+
+    @Test
+    void adminCannotCompleteAlreadyCompletedEnrollment() throws Exception {
+        Course course = createPublishedCourse();
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setStudent(student);
+        enrollment.setCourse(course);
+        enrollment.setStatus(EnrollmentStatus.COMPLETED);
+        enrollmentRepository.save(enrollment);
+
+        String token = tokenFor(admin);
+
+        mockMvc.perform(patch(
+                        "/api/enrollments/" + enrollment.getId() + "/complete"
+                )
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error")
+                        .value("Only active enrollments can be completed"));
+    }
+
+    @Test
+    void studentCannotCompleteEnrollment() throws Exception {
+        Course course = createPublishedCourse();
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setStudent(student);
+        enrollment.setCourse(course);
+        enrollmentRepository.save(enrollment);
+
+        String token = tokenFor(student);
+
+        mockMvc.perform(patch(
+                        "/api/enrollments/" + enrollment.getId() + "/complete"
+                )
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void instructorCannotCompleteEnrollment() throws Exception {
+        Course course = createPublishedCourse();
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setStudent(student);
+        enrollment.setCourse(course);
+        enrollmentRepository.save(enrollment);
+
+        String token = tokenFor(instructor);
+
+        mockMvc.perform(patch(
+                        "/api/enrollments/" + enrollment.getId() + "/complete"
+                )
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void unauthenticatedUserCannotCompleteEnrollment() throws Exception {
+        Course course = createPublishedCourse();
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setStudent(student);
+        enrollment.setCourse(course);
+        enrollmentRepository.save(enrollment);
+
+        mockMvc.perform(patch(
+                        "/api/enrollments/" + enrollment.getId() + "/complete"
+                ))
+                .andExpect(status().isUnauthorized());
+    }
 }

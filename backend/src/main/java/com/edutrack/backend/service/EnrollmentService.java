@@ -109,4 +109,20 @@ public class EnrollmentService {
 
         return enrollmentRepository.save(enrollment);
     }
+
+    public Enrollment completeEnrollment(UUID enrollmentId) {
+        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Enrollment not found"));
+
+        if (enrollment.getStatus() != EnrollmentStatus.ACTIVE) {
+            throw new BadRequestException(
+                    "Only active enrollments can be completed"
+            );
+        }
+
+        enrollment.setStatus(EnrollmentStatus.COMPLETED);
+
+        return enrollmentRepository.save(enrollment);
+    }
 }

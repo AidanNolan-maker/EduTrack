@@ -86,4 +86,16 @@ public class EnrollmentController {
 
         return ResponseEntity.ok(enrollmentMapper.toResponse(enrollment));
     }
+
+    @PatchMapping("/{enrollmentId}/complete")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<EnrollmentResponse> completeEnrollment(
+            @PathVariable UUID enrollmentId
+    ) {
+        Enrollment enrollment = enrollmentService.completeEnrollment(
+                enrollmentId
+        );
+
+        return ResponseEntity.ok(enrollmentMapper.toResponse(enrollment));
+    }
 }
