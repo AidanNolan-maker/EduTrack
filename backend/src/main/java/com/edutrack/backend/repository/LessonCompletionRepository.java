@@ -19,4 +19,9 @@ public interface LessonCompletionRepository
             UUID studentId,
             UUID lessonId
     );
+
+    long countByStudentIdAndLessonModuleCourseId(
+            UUID studentId,
+            UUID courseId
+    );
 }

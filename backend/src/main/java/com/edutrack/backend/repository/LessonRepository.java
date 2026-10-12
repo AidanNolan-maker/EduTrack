@@ -8,4 +8,8 @@ import java.util.UUID;
 
 public interface LessonRepository extends JpaRepository<Lesson, UUID> {
     List<Lesson> findByModuleIdOrderByDisplayOrderAsc(UUID moduleId);
+
+    List<Lesson> findByModuleCourseId(UUID courseId);
+
+    long countByModuleCourseId(UUID courseId);
 }
