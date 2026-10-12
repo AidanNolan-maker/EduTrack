@@ -1,10 +1,12 @@
 package com.edutrack.backend.controller;
 
+import com.edutrack.backend.entity.Lesson;
 import com.edutrack.backend.entity.Course;
 import com.edutrack.backend.entity.CourseModule;
 import com.edutrack.backend.entity.CourseStatus;
 import com.edutrack.backend.entity.Role;
 import com.edutrack.backend.entity.User;
+import com.edutrack.backend.repository.LessonRepository;
 import com.edutrack.backend.repository.CourseModuleRepository;
 import com.edutrack.backend.repository.CourseRepository;
 import com.edutrack.backend.repository.UserRepository;
@@ -20,9 +22,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
+import java.util.List;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,6 +47,9 @@ class CourseModuleControllerIntegrationTest {
 
     @Autowired
     private CourseModuleRepository courseModuleRepository;
+
+    @Autowired
+    private LessonRepository lessonRepository;
 
     @Autowired
     private JwtService jwtService;
@@ -339,5 +347,179 @@ class CourseModuleControllerIntegrationTest {
         module.setDisplayOrder(displayOrder);
 
         return courseModuleRepository.save(module);
+    }
+
+    @Test
+    void instructorCanDeleteOwnModule() throws Exception {
+        Course course = createCourse(
+                "Java Fundamentals",
+                CourseStatus.DRAFT
+        );
+
+        CourseModule module = createModule(
+                course,
+                "Introduction to Java",
+                1
+        );
+
+        mockMvc.perform(delete("/api/modules/{moduleId}", module.getId())
+                        .header(
+                                "Authorization",
+                                "Bearer " + tokenFor(instructor)
+                        ))
+                .andExpect(status().isNoContent());
+
+        assertThat(courseModuleRepository.findById(module.getId()))
+                .isEmpty();
+    }
+
+    @Test
+    void adminCanDeleteAnyModule() throws Exception {
+        Course course = createCourse(
+                "Java Fundamentals",
+                CourseStatus.DRAFT
+        );
+
+        CourseModule module = createModule(
+                course,
+                "Introduction to Java",
+                1
+        );
+
+        mockMvc.perform(delete("/api/modules/{moduleId}", module.getId())
+                        .header(
+                                "Authorization",
+                                "Bearer " + tokenFor(admin)
+                        ))
+                .andExpect(status().isNoContent());
+
+        assertThat(courseModuleRepository.findById(module.getId()))
+                .isEmpty();
+    }
+
+    @Test
+    void otherInstructorCannotDeleteModule() throws Exception {
+        Course course = createCourse(
+                "Java Fundamentals",
+                CourseStatus.DRAFT
+        );
+
+        CourseModule module = createModule(
+                course,
+                "Introduction to Java",
+                1
+        );
+
+        mockMvc.perform(delete("/api/modules/{moduleId}", module.getId())
+                        .header(
+                                "Authorization",
+                                "Bearer " + tokenFor(secondInstructor)
+                        ))
+                .andExpect(status().isForbidden());
+
+        assertThat(courseModuleRepository.findById(module.getId()))
+                .isPresent();
+    }
+
+    @Test
+    void studentCannotDeleteModule() throws Exception {
+        Course course = createCourse(
+                "Java Fundamentals",
+                CourseStatus.DRAFT
+        );
+
+        CourseModule module = createModule(
+                course,
+                "Introduction to Java",
+                1
+        );
+
+        mockMvc.perform(delete("/api/modules/{moduleId}", module.getId())
+                        .header(
+                                "Authorization",
+                                "Bearer " + tokenFor(student)
+                        ))
+                .andExpect(status().isForbidden());
+
+        assertThat(courseModuleRepository.findById(module.getId()))
+                .isPresent();
+    }
+
+    @Test
+    void unauthenticatedUserCannotDeleteModule() throws Exception {
+        Course course = createCourse(
+                "Java Fundamentals",
+                CourseStatus.DRAFT
+        );
+
+        CourseModule module = createModule(
+                course,
+                "Introduction to Java",
+                1
+        );
+
+        mockMvc.perform(delete("/api/modules/{moduleId}", module.getId()))
+                .andExpect(status().isUnauthorized());
+
+        assertThat(courseModuleRepository.findById(module.getId()))
+                .isPresent();
+    }
+
+    @Test
+    void deletingNonexistentModuleReturnsNotFound() throws Exception {
+        UUID moduleId = UUID.randomUUID();
+
+        mockMvc.perform(delete("/api/modules/{moduleId}", moduleId)
+                        .header(
+                                "Authorization",
+                                "Bearer " + tokenFor(instructor)
+                        ))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deletingModuleAlsoDeletesItsLessons() throws Exception {
+        Course course = createCourse(
+                "Java Fundamentals",
+                CourseStatus.DRAFT
+        );
+
+        CourseModule module = createModule(
+                course,
+                "Introduction to Java",
+                1
+        );
+
+        Lesson lesson1 = new Lesson();
+        lesson1.setModule(module);
+        lesson1.setTitle("Lesson 1");
+        lesson1.setContent("Lesson 1 content");
+        lesson1.setDisplayOrder(1);
+
+        Lesson lesson2 = new Lesson();
+        lesson2.setModule(module);
+        lesson2.setTitle("Lesson 2");
+        lesson2.setContent("Lesson 2 content");
+        lesson2.setDisplayOrder(2);
+
+        lessonRepository.saveAll(List.of(lesson1, lesson2));
+
+        assertThat(
+                lessonRepository.findByModuleIdOrderByDisplayOrderAsc(module.getId())
+        ).hasSize(2);
+
+        mockMvc.perform(delete("/api/modules/{moduleId}", module.getId())
+                        .header(
+                                "Authorization",
+                                "Bearer " + tokenFor(instructor)
+                        ))
+                .andExpect(status().isNoContent());
+
+        assertThat(courseModuleRepository.findById(module.getId()))
+                .isEmpty();
+
+        assertThat(
+                lessonRepository.findByModuleIdOrderByDisplayOrderAsc(module.getId())
+        ).isEmpty();
     }
 }
