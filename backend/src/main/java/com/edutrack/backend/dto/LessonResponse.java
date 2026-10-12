@@ -1,0 +1,17 @@
+package com.edutrack.backend.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+import java.util.UUID;
+
+@Getter
+@AllArgsConstructor
+public class LessonResponse {
+    private UUID id;
+    private UUID moduleId;
+    private UUID courseId;
+    private String title;
+    private String content;
+    private Integer displayOrder;
+}
