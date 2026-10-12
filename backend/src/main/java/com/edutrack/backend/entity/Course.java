@@ -8,6 +8,8 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "courses")
@@ -39,6 +41,14 @@ public class Course {
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @OneToMany(
+            mappedBy = "course",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @OrderBy("displayOrder ASC")
+    private List<CourseModule> modules = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

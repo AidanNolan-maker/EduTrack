@@ -10,6 +10,7 @@ import com.edutrack.backend.repository.CourseModuleRepository;
 import com.edutrack.backend.repository.CourseRepository;
 import com.edutrack.backend.repository.LessonRepository;
 import com.edutrack.backend.repository.UserRepository;
+import com.edutrack.backend.repository.EnrollmentRepository;
 import com.edutrack.backend.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,9 @@ class LessonControllerIntegrationTest {
     private LessonRepository lessonRepository;
 
     @Autowired
+    private EnrollmentRepository enrollmentRepository;
+
+    @Autowired
     private JwtService jwtService;
 
     @Autowired
@@ -61,6 +65,7 @@ class LessonControllerIntegrationTest {
     void setUp() {
         lessonRepository.deleteAll();
         courseModuleRepository.deleteAll();
+        enrollmentRepository.deleteAll();
         courseRepository.deleteAll();
         userRepository.deleteAll();
 

@@ -7,11 +7,12 @@ import com.edutrack.backend.entity.Role;
 import com.edutrack.backend.entity.User;
 import com.edutrack.backend.entity.CourseStatus;
 import com.edutrack.backend.exception.AccessDeniedException;
+import com.edutrack.backend.exception.ResourceNotFoundException;
 import com.edutrack.backend.repository.CourseModuleRepository;
 import com.edutrack.backend.repository.CourseRepository;
 import com.edutrack.backend.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -68,4 +69,25 @@ public class CourseModuleService {
                 .findByCourseIdOrderByDisplayOrderAsc(courseId);
     }
 
+    @Transactional
+    public void deleteModule(UUID moduleId, UUID userId) {
+        CourseModule module = courseModuleRepository.findById(moduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Module not found"));
+
+        Course course = module.getCourse();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        boolean isAdmin = user.getRole() == Role.ADMIN;
+        boolean isOwner = course.getInstructor().getId().equals(userId);
+
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException(
+                    "You do not have permission to delete this module"
+            );
+        }
+
+        courseModuleRepository.delete(module);
+    }
 }
