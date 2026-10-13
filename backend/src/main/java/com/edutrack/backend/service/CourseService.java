@@ -1,16 +1,19 @@
 package com.edutrack.backend.service;
 
 import com.edutrack.backend.dto.CreateCourseRequest;
+import com.edutrack.backend.dto.UpdateCourseRequest;
 import com.edutrack.backend.entity.Course;
 import com.edutrack.backend.entity.CourseStatus;
 import com.edutrack.backend.entity.User;
 import com.edutrack.backend.entity.Role;
 import com.edutrack.backend.exception.BadRequestException;
+import com.edutrack.backend.exception.ResourceNotFoundException;
 import com.edutrack.backend.repository.CourseRepository;
 import com.edutrack.backend.repository.UserRepository;
 import com.edutrack.backend.exception.AccessDeniedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -78,6 +81,35 @@ public class CourseService {
         }
 
         course.setStatus(CourseStatus.PUBLISHED);
+
+        return courseRepository.save(course);
+    }
+
+    @Transactional
+    public Course updateCourse(
+            UUID courseId,
+            UpdateCourseRequest request,
+            UUID userId
+    ) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Course Not Found"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User Not Found"));
+
+        boolean isAdmin = user.getRole() == Role.ADMIN;
+        boolean isOwner = course.getInstructor().getId().equals(userId);
+
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException(
+                    "You do not have permission to update this course"
+            );
+        }
+
+        course.setTitle(request.getTitle());
+        course.setDescription(request.getDescription());
 
         return courseRepository.save(course);
     }

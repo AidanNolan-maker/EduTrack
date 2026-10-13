@@ -2,6 +2,7 @@ package com.edutrack.backend.controller;
 
 import com.edutrack.backend.dto.CourseResponse;
 import com.edutrack.backend.dto.CreateCourseRequest;
+import com.edutrack.backend.dto.UpdateCourseRequest;
 import com.edutrack.backend.entity.Course;
 import com.edutrack.backend.mapper.CourseMapper;
 import com.edutrack.backend.security.CustomUserDetails;
@@ -78,6 +79,24 @@ public class CourseController {
 
         Course course = courseService.publishCourse(
                 courseId,
+                userId
+        );
+
+        return ResponseEntity.ok(courseMapper.toResponse(course));
+    }
+
+    @PutMapping("/{courseId}")
+    @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")
+    public ResponseEntity<CourseResponse> updateCourse(
+            @PathVariable UUID courseId,
+            @Valid @RequestBody UpdateCourseRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        UUID userId = userDetails.getUser().getId();
+
+        Course course = courseService.updateCourse(
+                courseId,
+                request,
                 userId
         );
 
