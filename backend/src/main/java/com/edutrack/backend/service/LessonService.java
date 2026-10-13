@@ -14,6 +14,7 @@ import com.edutrack.backend.exception.AccessDeniedException;
 import com.edutrack.backend.exception.ResourceNotFoundException;
 import com.edutrack.backend.repository.CourseModuleRepository;
 import com.edutrack.backend.repository.LessonRepository;
+import com.edutrack.backend.repository.LessonCompletionRepository;
 import com.edutrack.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class LessonService {
     private final LessonRepository lessonRepository;
+    private final LessonCompletionRepository lessonCompletionRepository;
     private final CourseModuleRepository courseModuleRepository;
     private final UserRepository userRepository;
 
@@ -105,5 +107,30 @@ public class LessonService {
         lesson.setDisplayOrder(request.getDisplayOrder());
 
         return lessonMapper.toResponse(lessonRepository.save(lesson));
+    }
+
+    public void deleteLesson(
+            UUID lessonId,
+            UUID userId
+    ) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lesson Not Found"));
+
+        Course course = lesson.getModule().getCourse();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User Not Found"));
+
+        boolean isAdmin = user.getRole() == Role.ADMIN;
+        boolean isOwner = course.getInstructor().getId().equals(userId);
+
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException(
+                    "You do not have permission to delete this lesson"
+            );
+        }
+
+        lessonCompletionRepository.deleteByLessonId(lessonId);
+        lessonRepository.delete(lesson);
     }
 }

@@ -71,4 +71,18 @@ public class LessonController {
 
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{lessonId}")
+    @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")
+    public ResponseEntity<LessonResponse> deleteLesson(
+            @PathVariable UUID lessonId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        lessonService.deleteLesson(
+                lessonId,
+                userDetails.getUser().getId()
+        );
+
+        return ResponseEntity.noContent().build();
+    }
 }
