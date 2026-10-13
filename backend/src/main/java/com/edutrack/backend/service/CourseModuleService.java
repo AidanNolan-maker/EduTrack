@@ -3,6 +3,9 @@ package com.edutrack.backend.service;
 import com.edutrack.backend.dto.CreateModuleRequest;
 import com.edutrack.backend.entity.Course;
 import com.edutrack.backend.entity.CourseModule;
+import com.edutrack.backend.mapper.CourseModuleMapper;
+import com.edutrack.backend.dto.UpdateModuleRequest;
+import com.edutrack.backend.dto.ModuleResponse;
 import com.edutrack.backend.entity.Role;
 import com.edutrack.backend.entity.User;
 import com.edutrack.backend.entity.CourseStatus;
@@ -22,6 +25,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CourseModuleService {
     private final CourseModuleRepository courseModuleRepository;
+    private final CourseModuleMapper courseModuleMapper;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
 
@@ -89,5 +93,33 @@ public class CourseModuleService {
         }
 
         courseModuleRepository.delete(module);
+    }
+
+    public ModuleResponse updateModule(
+            UUID moduleId,
+            UpdateModuleRequest request,
+            UUID userId
+    ) {
+        CourseModule module = courseModuleRepository.findById(moduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Module Not Found"));
+
+        Course course = module.getCourse();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User Not Found"));
+
+        boolean isAdmin = user.getRole() == Role.ADMIN;
+        boolean isOwner = course.getInstructor().getId().equals(userId);
+
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException(
+                    "You do not have permission to update this module"
+            );
+        }
+
+        module.setTitle(request.getTitle());
+        module.setDisplayOrder(request.getDisplayOrder());
+
+        return courseModuleMapper.toResponse(courseModuleRepository.save(module));
     }
 }

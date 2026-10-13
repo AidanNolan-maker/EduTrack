@@ -1,6 +1,7 @@
 package com.edutrack.backend.controller;
 
 import com.edutrack.backend.dto.CreateModuleRequest;
+import com.edutrack.backend.dto.UpdateModuleRequest;
 import com.edutrack.backend.dto.ModuleResponse;
 import com.edutrack.backend.entity.CourseModule;
 import com.edutrack.backend.mapper.CourseModuleMapper;
@@ -65,5 +66,21 @@ public class CourseModuleController {
         UUID userId = userDetails.getUser().getId();
 
         courseModuleService.deleteModule(moduleId, userId);
+    }
+
+    @PutMapping("/{moduleId}")
+    @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")
+    public ResponseEntity<ModuleResponse> updateModule(
+            @PathVariable UUID moduleId,
+            @Valid @RequestBody UpdateModuleRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        ModuleResponse response = courseModuleService.updateModule(
+                moduleId,
+                request,
+                userDetails.getUser().getId()
+        );
+
+        return ResponseEntity.ok(response);
     }
 }
