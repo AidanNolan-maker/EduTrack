@@ -1,13 +1,17 @@
 package com.edutrack.backend.service;
 
 import com.edutrack.backend.dto.CreateLessonRequest;
+import com.edutrack.backend.dto.LessonResponse;
+import com.edutrack.backend.dto.UpdateLessonRequest;
 import com.edutrack.backend.entity.Course;
 import com.edutrack.backend.entity.CourseModule;
 import com.edutrack.backend.entity.CourseStatus;
 import com.edutrack.backend.entity.Lesson;
+import com.edutrack.backend.mapper.LessonMapper;
 import com.edutrack.backend.entity.Role;
 import com.edutrack.backend.entity.User;
 import com.edutrack.backend.exception.AccessDeniedException;
+import com.edutrack.backend.exception.ResourceNotFoundException;
 import com.edutrack.backend.repository.CourseModuleRepository;
 import com.edutrack.backend.repository.LessonRepository;
 import com.edutrack.backend.repository.UserRepository;
@@ -23,6 +27,8 @@ public class LessonService {
     private final LessonRepository lessonRepository;
     private final CourseModuleRepository courseModuleRepository;
     private final UserRepository userRepository;
+
+    private final LessonMapper lessonMapper;
 
     public Lesson createLesson(
             CreateLessonRequest request,
@@ -70,5 +76,34 @@ public class LessonService {
 
         return lessonRepository
                 .findByModuleIdOrderByDisplayOrderAsc(moduleId);
+    }
+
+    public LessonResponse updateLesson(
+            UUID lessonId,
+            UpdateLessonRequest request,
+            UUID userId
+    ) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lesson Not Found"));
+
+        Course course = lesson.getModule().getCourse();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User Not Found"));
+
+        boolean isAdmin = user.getRole() == Role.ADMIN;
+        boolean isOwner = course.getInstructor().getId().equals(userId);
+
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException(
+                    "You do not have permission to update this lesson"
+            );
+        }
+
+        lesson.setTitle(request.getTitle());
+        lesson.setContent(request.getContent());
+        lesson.setDisplayOrder(request.getDisplayOrder());
+
+        return lessonMapper.toResponse(lessonRepository.save(lesson));
     }
 }

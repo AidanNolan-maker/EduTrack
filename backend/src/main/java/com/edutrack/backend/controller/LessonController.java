@@ -1,6 +1,7 @@
 package com.edutrack.backend.controller;
 
 import com.edutrack.backend.dto.CreateLessonRequest;
+import com.edutrack.backend.dto.UpdateLessonRequest;
 import com.edutrack.backend.dto.LessonResponse;
 import com.edutrack.backend.entity.Lesson;
 import com.edutrack.backend.mapper.LessonMapper;
@@ -53,5 +54,21 @@ public class LessonController {
                 .toList();
 
         return ResponseEntity.ok(lessons);
+    }
+
+    @PutMapping("/{lessonId}")
+    @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")
+    public ResponseEntity<LessonResponse> updateLesson(
+            @PathVariable UUID lessonId,
+            @Valid @RequestBody UpdateLessonRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        LessonResponse response = lessonService.updateLesson(
+                lessonId,
+                request,
+                userDetails.getUser().getId()
+        );
+
+        return ResponseEntity.ok(response);
     }
 }
